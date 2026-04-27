@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyyaml = "*"
+pywin32 = { version = "*", markers = "sys_platform == 'win32'" }
+
+[dev-packages]
+python-lsp-server = { version = "*", extras = ["all"] }
+python-lsp-black = "*"
+pyls-isort = "*"
+
+[requires]
+python_version = "3.10"
