@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "office_py_tools_local_only": {
+      "command": "pipenv",
+      "args": [
+        "run",
+        "python",
+        "-m",
+        "mcp_servers.local_only.server"
+      ],
+      "cwd": "/home/sabamiso/workspace/office_py_tools"
+    }
+  }
+}

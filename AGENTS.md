@@ -9,11 +9,13 @@
 - 目的: Office 関連の作業を Python で補助するための小さなツール群
 - 現在の主機能: YAML のメール定義から Outlook の下書きを作成する CLI
 - 追加機能: 複数ファイルのファイル名を一括変更する CLI
+- 追加予定: Codex などの AI クライアントから使うローカル MCP サーバー
 - 主なコード:
   - `mytools/create_mail_draft.py`: CLI エントリポイント
   - `mytools/rename_files.py`: ファイル名一括変更 CLI
   - `mytools/jobs/mail_draft_creator.py`: Outlook 下書き作成ロジック
   - `mytools/common/`: パス、ファイル、YAML、リネーム関連の共通処理
+  - `mcp_servers/`: MCP サーバーからのみ使う AI 向けローカル機能
   - `scripts/create_mail_draft.ps1`: Windows PowerShell 向け起動スクリプト
   - `scripts/create_mail_draft.sh`: POSIX shell 向け起動スクリプト
   - `scripts/rename_files.ps1`: ファイル名一括変更用 PowerShell ラッパー
@@ -77,6 +79,14 @@ python -m mytools.rename_files --cwd "$PWD" --operation prefix --prefix old_ --p
 python -m mytools.rename_files --cwd "$PWD" --operation suffix --suffix _done --path ./a.txt
 ```
 
+MCP サーバーの開発起動例:
+
+```sh
+pipenv run python -m mcp_servers.local_only.server
+```
+
+AI クライアント向けの stdio サーバーとして使う場合も、原則として同じ Python モジュールを起動してください。
+
 ## YAML メール定義
 
 基本形式:
@@ -126,6 +136,15 @@ attachments:
 - ラッパー内では、Python へ渡す引数配列を `PYTHON_ARGS` や `$PythonArgs` のような専用変数に組み立て、どの入力がどの Python 引数に対応するかを読める状態にしてください。
 - `"$@"` や `@CliArgs` を Python コマンドへ直接渡す実装は避けてください。使う場合でも、事前に解析して名前付き引数へ変換してください。
 - 新しい CLI を作る場合、Python 側もラッパーから名前付き引数だけで呼び出せるインターフェースを用意してください。
+
+## MCP サーバー設計方針
+
+- MCP サーバーからのみ利用する新規機能は `mcp_servers/` 配下に置いてください。
+- 既存の CLI は、明示的な要件がない限り MCP ツールとして公開しないでください。
+- `mytools/` は人がコマンドラインから実行する CLI と共通処理の置き場、`mcp_servers/` は AI クライアント向け stdio MCP サーバーの置き場として分離してください。
+- MCP 専用機能を追加する場合は、`mcp_servers/<server_name>/tools/` のようにサーバー単位で分けてください。
+- 実ファイルを変更する MCP ツールを追加する場合は、既定を dry-run または確認前提にしてください。
+- MCP サーバーの依存は Pipenv で管理し、実行時に必要な依存は `requirements.txt` にも記載してください。
 
 ## コーディング方針
 

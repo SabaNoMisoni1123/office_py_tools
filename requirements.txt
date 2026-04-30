@@ -1,2 +1,4 @@
+jpholiday>=1.0.3
+mcp>=1.26.0
 PyYAML
 pywin32; sys_platform == "win32"
