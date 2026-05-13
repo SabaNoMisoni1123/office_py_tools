@@ -4,6 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+jpholiday = ">=1.0.3"
+mcp = ">=1.26.0"
 pyyaml = "*"
 pywin32 = { version = "*", markers = "sys_platform == 'win32'" }
 
