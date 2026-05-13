@@ -10,14 +10,14 @@
 - 現在の主機能: YAML のメール定義から Outlook の下書きを作成する CLI
 - 追加機能: 複数ファイルのファイル名を一括変更する CLI
 - 主なコード:
-  - `mytools/create_mail_draft.py`: CLI エントリポイント
-  - `mytools/rename_files.py`: ファイル名一括変更 CLI
-  - `mytools/jobs/mail_draft_creator.py`: Outlook 下書き作成ロジック
-  - `mytools/common/`: パス、ファイル、YAML、リネーム関連の共通処理
-  - `scripts/create_mail_draft.ps1`: Windows PowerShell 向け起動スクリプト
-  - `scripts/create_mail_draft.sh`: POSIX shell 向け起動スクリプト
-  - `scripts/rename_files.ps1`: ファイル名一括変更用 PowerShell ラッパー
-  - `scripts/rename_files.sh`: ファイル名一括変更用 Bash shell ラッパー
+    - `mytools/create_mail_draft.py`: CLI エントリポイント
+    - `mytools/rename_files.py`: ファイル名一括変更 CLI
+    - `mytools/jobs/mail_draft_creator.py`: Outlook 下書き作成ロジック
+    - `mytools/common/`: パス、ファイル、YAML、リネーム関連の共通処理
+    - `scripts/create_mail_draft.ps1`: Windows PowerShell 向け起動スクリプト
+    - `scripts/create_mail_draft.sh`: POSIX shell 向け起動スクリプト
+    - `scripts/rename_files.ps1`: ファイル名一括変更用 PowerShell ラッパー
+    - `scripts/rename_files.sh`: ファイル名一括変更用 Bash shell ラッパー
 
 ## 実行環境の前提
 
