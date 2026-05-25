@@ -1,5 +1,34 @@
 # office_py_tools
 
+## create_mail_draft の返信モード
+
+既定の動作は従来どおり、新規メールの下書き作成です。既存メールへの返信下書きを作る場合は、Outlook で返信したいメールを 1 件だけ選択してから、YAML に `mode: reply` を指定するか、CLI で `--mode reply` を指定してください。
+
+返信モードでは `body` が必須、`attachments` が任意です。宛先と件名は Outlook の返信作成処理に任せるため、`to` と `subject` は不要です。
+
+```yaml
+mode: reply
+body: |
+  返信本文
+attachments:
+  - ./path/to/file.pdf
+```
+
+実行例:
+
+```powershell
+.\scripts\create_mail_draft.ps1 .\reply.yaml
+.\scripts\create_mail_draft.ps1 .\reply.yaml --reply-all
+```
+
+`mode: reply` を YAML に書かない場合は、CLI で明示できます。
+
+```powershell
+.\scripts\create_mail_draft.ps1 .\reply.yaml --mode reply
+```
+
+返信対象の指定方法は現在 `selected` のみです。Outlook で複数アイテムを選択している場合や、メール以外を選択している場合はエラーにします。
+
 Office 関連の作業を Python で補助するための小さな CLI ツール群です。
 
 現在は次のツールを提供しています。順次追加を予定しています。

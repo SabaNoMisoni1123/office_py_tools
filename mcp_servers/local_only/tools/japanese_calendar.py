@@ -53,11 +53,15 @@ def get_date_info(date_text: str) -> dict[str, Any]:
 
 def _parse_iso_date(date_text: str) -> date:
     if date_text is None:
-        raise ValueError("date_text は None にできません。YYYY-MM-DD 形式で指定してください。")
+        raise ValueError(
+            "date_text は None にできません。YYYY-MM-DD 形式で指定してください。"
+        )
 
     normalized = str(date_text).strip()
     if not normalized:
-        raise ValueError("date_text は空文字にできません。YYYY-MM-DD 形式で指定してください。")
+        raise ValueError(
+            "date_text は空文字列にできません。YYYY-MM-DD 形式で指定してください。"
+        )
 
     try:
         return date.fromisoformat(normalized)
@@ -69,13 +73,16 @@ def _parse_iso_date(date_text: str) -> date:
 
 def _accuracy_note(target_date: date) -> str:
     if target_date.year <= 2026:
-        return "jpholiday が公式発表済みデータに基づく動作確認対象としている範囲です。"
+        return (
+            "jpholiday が公式発表済みデータに基づく動作確認対象としている"
+            "範囲です。"
+        )
     if target_date.year == 2027:
         return (
-            "内閣府は 2027 年の祝日一覧を公表済みです。"
-            "jpholiday の収録状況は利用バージョンに依存します。"
+            "内閣府は 2027 年の祝日一覧を公表済みです。jpholiday の収録状況は"
+            "利用バージョンに依存します。"
         )
     return (
-        "将来年の春分の日・秋分の日などは公式公表前に変わる可能性があります。"
+        "将来年の春分の日・秋分の日などは公式発表前に変わる可能性があります。"
         "最終確認には内閣府の最新公表を参照してください。"
     )

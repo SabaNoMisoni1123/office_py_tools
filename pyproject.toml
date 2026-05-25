@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "office-py-tools"
+version = "0.1.0"
+description = "Office 作業補助 CLI とローカル MCP サーバー"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "jpholiday>=1.0.3",
+  "mcp>=1.26.0",
+  "PyMuPDF>=1.24.0",
+  "PyYAML",
+  "pywin32; sys_platform == 'win32'",
+]
+
+[project.scripts]
+office-py-tools-mcp-local-only = "mcp_servers.local_only.server:main"
+office-py-tools-mcp-config = "mcp_servers.local_only.generate_client_config:main"
+
+[tool.setuptools.packages.find]
+include = ["mytools*", "mcp_servers*"]

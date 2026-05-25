@@ -14,7 +14,7 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError("YAMLのルートは辞書形式である必要があります。")
+        raise ValueError("YAMLのルートはキーと値の形式で記載してください。")
 
     return data
 
@@ -24,14 +24,14 @@ def get_required_str(data: dict[str, Any], key: str) -> str:
     if value is None:
         raise ValueError(f"{key} は必須です。")
     if not isinstance(value, str):
-        raise ValueError(f"{key} は文字列である必要があります。")
+        raise ValueError(f"{key} は文字列で指定してください。")
     return value
 
 
 def get_optional_str(data: dict[str, Any], key: str, default: str = "") -> str:
     value = data.get(key, default)
     if not isinstance(value, str):
-        raise ValueError(f"{key} は文字列である必要があります。")
+        raise ValueError(f"{key} は文字列で指定してください。")
     return value
 
 
@@ -41,10 +41,10 @@ def get_str_list(data: dict[str, Any], key: str) -> list[str]:
         return []
 
     if not isinstance(value, list):
-        raise ValueError(f"{key} は配列である必要があります。")
+        raise ValueError(f"{key} は配列で指定してください。")
 
     for i, item in enumerate(value):
         if not isinstance(item, str):
-            raise ValueError(f"{key}[{i}] は文字列である必要があります。")
+            raise ValueError(f"{key}[{i}] は文字列で指定してください。")
 
     return value

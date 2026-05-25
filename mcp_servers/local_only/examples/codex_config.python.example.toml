@@ -1,0 +1,10 @@
+[mcp_servers.office_py_tools_local_only]
+command = "python"
+args = [
+  "-m",
+  "mcp_servers.local_only.server",
+]
+cwd = "<REPOSITORY_ROOT>"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled_tools = ["get_japanese_date_info"]
