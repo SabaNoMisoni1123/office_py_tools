@@ -1,50 +1,32 @@
 # office_py_tools
 
-## create_mail_draft の返信モード
-
-既定の動作は従来どおり、新規メールの下書き作成です。既存メールへの返信下書きを作る場合は、Outlook で返信したいメールを 1 件だけ選択してから、YAML に `mode: reply` を指定するか、CLI で `--mode reply` を指定してください。
-
-返信モードでは `body` が必須、`attachments` が任意です。宛先と件名は Outlook の返信作成処理に任せるため、`to` と `subject` は不要です。
-
-```yaml
-mode: reply
-body: |
-  返信本文
-attachments:
-  - ./path/to/file.pdf
-```
-
-実行例:
-
-```powershell
-.\scripts\create_mail_draft.ps1 .\reply.yaml
-.\scripts\create_mail_draft.ps1 .\reply.yaml --reply-all
-```
-
-`mode: reply` を YAML に書かない場合は、CLI で明示できます。
-
-```powershell
-.\scripts\create_mail_draft.ps1 .\reply.yaml --mode reply
-```
-
-返信対象の指定方法は現在 `selected` のみです。Outlook で複数アイテムを選択している場合や、メール以外を選択している場合はエラーにします。
-
 Office 関連の作業を Python で補助するための小さな CLI ツール群です。
 
-現在は次のツールを提供しています。順次追加を予定しています。
+現在は次の機能を提供しています。
 
-- YAML のメール定義から Outlook の下書きを作成するツール
-- 複数ファイルのファイル名を一括変更するツール
+- YAML のメール定義から Outlook の下書きを作成する
+- Outlook で選択中のメールへの返信下書きを作成する
+- 複数ファイルのファイル名を一括変更する
+- PDF の各ページを PNG 画像へ変換する
+- 2 つの PDF をページごとに画像比較し、差分 PNG を出力する
+- AI クライアント向けのローカル MCP サーバーで日本の曜日・祝日情報を返す
 
 ## 動作環境
 
-- Python 3.10
+- Python 3.10 以上
 - Windows PowerShell、または POSIX 互換 shell
 - 依存パッケージ
     - `PyYAML`
+    - `PyMuPDF`
+    - `jpholiday`
+    - `mcp`
     - `pywin32`（Windows のみ）
 
 Outlook 下書き作成ツールは Windows、Microsoft Outlook、`pywin32`、Outlook COM を前提にしています。Linux、macOS、WSL では Outlook COM を利用できないため、Outlook 下書き作成の実動作確認はできません。
+
+PDF 変換と PDF 比較には `PyMuPDF` を使います。
+
+MCP サーバーには `mcp` と `jpholiday` を使います。詳細は [mcp_servers/README.md](mcp_servers/README.md) と [mcp_servers/local_only/README.md](mcp_servers/local_only/README.md) を参照してください。
 
 ## セットアップ
 
@@ -62,7 +44,7 @@ cd "C:\path\to\py_tools"
 python --version
 ```
 
-Python 3.10 系が使われていることを確認してください。
+Python 3.10 以上が使われていることを確認してください。`Pipfile` は Python 3.10 を前提にしています。
 
 ### 3. Windows で Python パッケージをインストールする参考手順
 
@@ -73,16 +55,16 @@ py -3.10 -m pip --version
 py -3.10 -m pip install -r requirements.txt
 ```
 
-`python` コマンドが Python 3.10 を指している環境では、次の形式でも同じ依存パッケージをインストールできます。
+`python` コマンドが利用したい Python を指している環境では、次の形式でも同じ依存パッケージをインストールできます。
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-このプロジェクトを直接利用するだけであれば、通常は `requirements.txt` からインストールすれば十分です。個別にインストールする場合は、次のパッケージが必要です。
+このプロジェクトを直接利用するだけであれば、通常は `requirements.txt` からインストールすれば十分です。個別にインストールする場合は、主に次のパッケージが必要です。
 
 ```powershell
-python -m pip install PyYAML
+python -m pip install PyYAML PyMuPDF jpholiday mcp
 python -m pip install pywin32
 ```
 
@@ -109,7 +91,7 @@ pipenv install --dev
 Python コマンドを Pipenv 環境内で実行する場合は、次のように `pipenv run` を付けます。
 
 ```powershell
-pipenv run python -m compileall mytools
+pipenv run python -m compileall mytools mcp_servers
 ```
 
 ### 5. Pipenv を使わない実行環境を用意する場合
@@ -120,11 +102,17 @@ pipenv run python -m compileall mytools
 python -m pip install -r requirements.txt
 ```
 
+editable install して MCP 用の console script を使う場合は、次のようにインストールします。
+
+```powershell
+python -m pip install -e .
+```
+
 ## ツール 1: Outlook 下書き作成
 
 YAML ファイルに定義した宛先、件名、本文、添付ファイルから Outlook のメール下書きを作成します。
 
-### YAML の形式
+### 新規メールの YAML
 
 ```yaml
 to:
@@ -138,7 +126,7 @@ subject: |
 body: |
   本文
 attachments:
-  - C:\path\to\file.pdf
+  - ./path/to/file.pdf
 ```
 
 必須項目:
@@ -152,8 +140,34 @@ attachments:
 - `cc`: 文字列配列。省略時は空配列
 - `bcc`: 文字列配列。省略時は空配列
 - `attachments`: 文字列配列。省略時は空配列
+- `mode`: `new` または `reply`。省略時は `new`
 
-添付ファイルは、存在する通常ファイルである必要があります。現行実装では、`attachments` の相対パスは Python プロセスのカレントディレクトリ基準で解釈されます。ラッパースクリプト利用時はプロジェクトルートへ移動してから Python を実行するため、添付ファイルには絶対パスを指定するのが確実です。
+添付ファイルは、存在する通常ファイルである必要があります。ラッパースクリプトまたは `--cwd` を使って実行する場合、YAML 内の `attachments` の相対パスはコマンドを実行したディレクトリ基準で解釈されます。
+
+### 返信メールの YAML
+
+既存メールへの返信下書きを作る場合は、Outlook で返信したいメールを 1 件だけ選択してから、YAML に `mode: reply` を指定するか、CLI で `--mode reply` を指定してください。
+
+返信モードでは `body` が必須、`attachments` が任意です。宛先と件名は Outlook の返信作成処理に任せるため、`to` と `subject` は不要です。
+
+```yaml
+mode: reply
+body: |
+  返信本文
+attachments:
+  - ./path/to/file.pdf
+```
+
+全員に返信する場合は、YAML に `reply_all: true` を指定できます。
+
+```yaml
+mode: reply
+reply_all: true
+body: |
+  返信本文
+```
+
+返信対象の指定方法は現在 `selected` のみです。Outlook で複数アイテムを選択している場合や、メール以外を選択している場合はエラーになります。
 
 ### PowerShell ラッパーで実行
 
@@ -167,15 +181,17 @@ attachments:
 .\scripts\create_mail_draft.ps1 .\mail.yaml --no-show
 ```
 
+返信モードを CLI で明示する場合:
+
+```powershell
+.\scripts\create_mail_draft.ps1 .\reply.yaml --mode reply
+.\scripts\create_mail_draft.ps1 .\reply.yaml --mode reply --reply-all
+```
+
 ### POSIX shell ラッパーで実行
 
 ```sh
 ./scripts/create_mail_draft.sh ./mail.yaml
-```
-
-下書きを画面表示せず Outlook の下書きへ保存する場合:
-
-```sh
 ./scripts/create_mail_draft.sh ./mail.yaml --no-show
 ```
 
@@ -183,6 +199,7 @@ attachments:
 
 ```powershell
 python -m mytools.create_mail_draft --yaml-path .\mail.yaml --cwd (Get-Location).Path
+python -m mytools.create_mail_draft --yaml-path .\reply.yaml --cwd (Get-Location).Path --mode reply
 ```
 
 Pipenv 環境で実行する場合:
@@ -277,9 +294,113 @@ python -m mytools.rename_files --cwd (Get-Location).Path --operation suffix --su
 .\scripts\rename_files.ps1 prefix old_ .\a.txt --overwrite
 ```
 
+## ツール 3: PDF を PNG へ変換
+
+PDF の全ページを PNG 画像に変換します。既定の出力先は、PDF と同じ場所に作られる `img_<PDF名>` ディレクトリです。
+
+PowerShell:
+
+```powershell
+.\scripts\pdf2png.ps1 .\sample.pdf --dry-run
+.\scripts\pdf2png.ps1 .\sample.pdf
+```
+
+出力先や画質を指定する場合:
+
+```powershell
+.\scripts\pdf2png.ps1 .\sample.pdf --output-dir .\images --quality high
+```
+
+Python モジュールとして直接実行:
+
+```powershell
+python -m mytools.pdf_to_png --cwd (Get-Location).Path --pdf-path .\sample.pdf --dry-run
+```
+
+主なオプション:
+
+- `--quality <low|medium|high>`: 変換品質。`low=150DPI`、`medium=300DPI`、`high=600DPI`。既定値は `medium`
+- `--output-dir <dir>`: PNG 画像の出力先ディレクトリ
+- `--dry-run`: 実際には作成せず、作成予定の PNG ファイルを表示する
+- `--overwrite`: 出力先 PNG が既に存在する場合に上書きする
+
+## ツール 4: PDF 比較
+
+2 つの PDF をページごとに画像化して比較し、差分があるページの PNG を出力します。既定の出力先は、比較元 PDF と同じ場所に作られる `diff_<left>__<right>` ディレクトリです。差分画像は `diff_pages` 配下に出力されます。
+
+PowerShell:
+
+```powershell
+.\scripts\compare_pdfs.ps1 .\old.pdf .\new.pdf
+```
+
+画質、許容差、出力先を指定する場合:
+
+```powershell
+.\scripts\compare_pdfs.ps1 .\old.pdf .\new.pdf --quality high --threshold 5 --output-dir .\pdf_diff
+```
+
+Python モジュールとして直接実行:
+
+```powershell
+python -m mytools.compare_pdfs --cwd (Get-Location).Path --left-pdf .\old.pdf --right-pdf .\new.pdf
+```
+
+主なオプション:
+
+- `--quality <low|medium|high>`: 比較時の画像化品質。`low=150DPI`、`medium=300DPI`、`high=600DPI`。既定値は `medium`
+- `--threshold <0-255>`: RGB 各チャンネルの差分許容値。`0` は完全一致比較
+- `--output-dir <dir>`: 差分画像の出力先ディレクトリ
+- `--overwrite`: 出力先 PNG が既に存在する場合に上書きする
+
+終了コード:
+
+- `0`: 差分なし
+- `1`: 差分あり
+- `2`: 実行エラー
+
+## ツール 5: ローカル MCP サーバー
+
+`mcp_servers/local_only` には、AI クライアントからローカル stdio MCP サーバーとして利用するための機能があります。現在は `get_japanese_date_info` ツールを公開しています。
+
+`get_japanese_date_info` は `YYYY-MM-DD` の日付から、曜日、日本の祝日名、休日判定、営業日可否を返します。
+
+Pipenv を使う場合:
+
+```powershell
+pipenv run python -m mcp_servers.local_only.server
+```
+
+Pipenv を使わない場合:
+
+```powershell
+python -m mcp_servers.local_only.server
+```
+
+editable install 済みの場合:
+
+```powershell
+office-py-tools-mcp-local-only
+```
+
+Claude Desktop や Codex 向けの設定例を生成する場合:
+
+```powershell
+python -m mcp_servers.local_only.generate_client_config --client claude --runner pipenv
+python -m mcp_servers.local_only.generate_client_config --client codex --runner pipenv
+```
+
+editable install 済みの場合は、次のコマンドでも設定例を生成できます。
+
+```powershell
+office-py-tools-mcp-config --client codex --runner python
+```
+
+クライアントごとの詳しい設定は [mcp_servers/local_only/README.md](mcp_servers/local_only/README.md) を参照してください。
+
 ## パス指定の考え方
 
-ラッパースクリプトは、呼び出し元のカレントディレクトリを Python 側へ `--cwd` として渡します。そのため、メール YAML のパスやリネーム対象ファイルのパスは、基本的にコマンドを実行したディレクトリからの相対パスとして指定できます。
+ラッパースクリプトは、呼び出し元のカレントディレクトリを Python 側へ `--cwd` として渡します。そのため、メール YAML のパス、YAML 内の添付ファイル、リネーム対象ファイル、PDF ファイル、出力先ディレクトリは、基本的にコマンドを実行したディレクトリからの相対パスとして指定できます。
 
 例:
 
@@ -290,20 +411,18 @@ C:\path\to\py_tools\scripts\rename_files.ps1 prefix old_ .\a.txt --dry-run
 
 この場合、`.\a.txt` は `C:\work\a.txt` として解釈されます。
 
-ただし、Outlook 下書き作成ツールの YAML 内に書く `attachments` は、現行実装では `--cwd` による解決対象ではありません。添付ファイルは絶対パスで指定することを推奨します。
-
 ## 動作確認
 
 構文チェック:
 
 ```powershell
-python -m compileall mytools
+python -m compileall mytools mcp_servers
 ```
 
 Pipenv 環境を使う場合:
 
 ```powershell
-pipenv run python -m compileall mytools
+pipenv run python -m compileall mytools mcp_servers
 ```
 
 ファイル名一括変更の動作確認:
@@ -314,10 +433,17 @@ New-Item -ItemType File .\b.txt
 .\scripts\rename_files.ps1 basename report .\a.txt .\b.txt --dry-run
 ```
 
+PDF 変換の動作確認:
+
+```powershell
+.\scripts\pdf2png.ps1 .\sample.pdf --dry-run
+```
+
 Outlook 下書き作成の実動作確認は、Windows、Outlook、`pywin32` が利用できる環境で行ってください。
 
 ## 既知の注意点
 
-- 一部の Python ファイルや shell スクリプト内の日本語メッセージに文字化けがあります。ツールの利用手順は、この README のコマンド例を参照してください。
 - Outlook 下書き作成は Outlook COM に依存するため、Windows 以外では実行できません。
-- `Pipfile` は Python 3.10 を前提にしています。Python 3.11 以上を前提にした変更を行う場合は、互換性を確認してください。
+- PDF 変換と PDF 比較は PDF のページを画像化して処理します。`--quality high` は出力画像が大きくなり、処理時間も長くなります。
+- PDF 比較は画像比較のため、見た目が同じであれば内部構造の違いは検出しません。
+- `Pipfile` は Python 3.10 を前提にしています。Python 3.11 以上で使う場合は、依存パッケージの互換性を確認してください。
