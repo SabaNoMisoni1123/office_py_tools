@@ -1,0 +1,11 @@
+{
+  "glob": "**/*",
+  "exclude_globs": [
+    "**/.git/**",
+    "**/__pycache__/**",
+    "**/.venv/**"
+  ],
+  "hash": "none",
+  "max_size_mb": 100,
+  "naming_regex": null
+}

@@ -1,0 +1,6 @@
+{
+  "recursive": true,
+  "summary_format": "csv",
+  "continue_on_error": false,
+  "allow_partial_success": false
+}

@@ -1,0 +1,16 @@
+{
+  "title": "集計レポート",
+  "input": {
+    "header_row": 1
+  },
+  "filters": [],
+  "group_by": [],
+  "metrics": [
+    {
+      "name": "件数",
+      "type": "count"
+    }
+  ],
+  "sort": [],
+  "top_n": null
+}

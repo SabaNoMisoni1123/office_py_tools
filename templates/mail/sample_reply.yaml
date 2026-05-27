@@ -1,0 +1,14 @@
+mode: reply
+reply_all: false
+body: |
+  {{user_name}} 様
+
+  ご連絡ありがとうございます。
+  {{message}}
+
+  よろしくお願いいたします。
+attachments: []
+defaults:
+  message: "確認しました。"
+required_vars:
+  - user_name

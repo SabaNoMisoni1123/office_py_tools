@@ -4,10 +4,10 @@ param(
 )
 
 if ($CliArgs.Count -lt 1) {
-    Write-Host "g‚¢•û:"
-    Write-Host "  .\create_mail_draft.ps1 <yaml_path> [‚»‚Ì‘¼‚Ìˆø”]"
+    Write-Host "ä½¿ã„æ–¹:"
+    Write-Host "  .\create_mail_draft.ps1 <yaml_path> [ãã®ä»–ã®å¼•æ•°]"
     Write-Host ""
-    Write-Host "—á:"
+    Write-Host "ä¾‹:"
     Write-Host "  .\create_mail_draft.ps1 .\config.yaml "
     Write-Host ""
     return

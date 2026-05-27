@@ -1,0 +1,18 @@
+mode: new
+to:
+  - "{{to}}"
+cc: []
+bcc: []
+subject: "【{{project_name}}】資料送付"
+body: |
+  {{user_name}} 様
+
+  {{project_name}} の資料を送付します。
+
+  よろしくお願いいたします。
+attachments: []
+defaults:
+  project_name: "案件名"
+required_vars:
+  - to
+  - user_name

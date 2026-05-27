@@ -1,5 +1,6 @@
 jpholiday
 mcp
+openpyxl
 PyMuPDF
 PyYAML
 pywin32; sys_platform == "win32"

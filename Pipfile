@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 jpholiday = ">=1.0.3"
 mcp = ">=1.26.0"
+openpyxl = ">=3.1.0"
 pymupdf = ">=1.24.0"
 pyyaml = "*"
 pywin32 = { version = "*", markers = "sys_platform == 'win32'" }
