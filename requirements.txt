@@ -3,3 +3,4 @@ mcp
 PyMuPDF
 PyYAML
 pywin32; sys_platform == "win32"
+weasyprint
