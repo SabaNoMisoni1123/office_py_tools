@@ -1,5 +1,61 @@
 # office_py_tools
 
+## 2026-05-27 追加ツール概要
+
+業務効率化の早期実装対象として、次の CLI を追加済みです。
+
+- `mytools.generate_mail_yaml`: メールテンプレートから Outlook 下書き作成用 YAML を生成する
+- `mytools.audit_files`: 指定フォルダ配下のファイルを棚卸しし、Markdown / JSON サマリや CSV 一覧を出力する
+- `mytools.batch_convert`: Markdown / docx / PDF の既存変換処理を複数ファイルへまとめて適用する
+- `mytools.generate_report`: CSV / xlsx から Markdown 集計レポートを生成する
+
+関連ドキュメント:
+
+- 今後の機能拡張計画: [docs/feature_expansion_plan.md](docs/feature_expansion_plan.md)
+- 優先度 A ツール詳細仕様: [docs/priority_a_tool_spec.md](docs/priority_a_tool_spec.md)
+
+追加依存:
+
+- `openpyxl`: `generate_report` の `.xlsx` 入力対応で使用
+
+依存は `Pipfile`、`pyproject.toml`、`requirements.txt` に反映済みです。`Pipfile.lock` はこの変更では更新していません。
+
+### 追加ツールの使用例
+
+メール YAML テンプレート生成:
+
+```powershell
+.\scripts\generate_mail_yaml.ps1 .\templates\mail\sample_new.yaml --output .\mail.yaml --var to=user@example.com --var user_name=山田 --dry-run
+python -m mytools.generate_mail_yaml --cwd (Get-Location).Path --template .\templates\mail\sample_new.yaml --output .\mail.yaml --var to=user@example.com --var user_name=山田 --dry-run
+```
+
+ファイル棚卸し:
+
+```powershell
+.\scripts\audit_files.ps1 .\docs --glob *.md --summary-output .\file_audit.md --dry-run
+python -m mytools.audit_files --cwd (Get-Location).Path --root .\docs --glob *.md --summary-output .\file_audit.md --dry-run
+```
+
+バッチ変換:
+
+```powershell
+.\scripts\batch_convert.ps1 .\docs --kind markdown --format html --output-dir .\out --dry-run
+python -m mytools.batch_convert --cwd (Get-Location).Path --input-dir .\docs --kind markdown --format html --output-dir .\out --dry-run
+```
+
+Excel / CSV 集計レポート生成:
+
+```powershell
+.\scripts\generate_report.ps1 .\data.csv --config .\config\report_generator.json --output .\report.md --dry-run
+python -m mytools.generate_report --cwd (Get-Location).Path --input .\data.csv --config .\config\report_generator.json --output .\report.md --dry-run
+```
+
+構文確認:
+
+```powershell
+python -m compileall mytools mcp_servers
+```
+
 Office 関連の作業を Python で補助するための小さな CLI ツール群です。
 
 現在は次の機能を提供しています。
