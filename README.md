@@ -1,505 +1,247 @@
 # office_py_tools
 
-## 2026-05-27 追加ツール概要
+Office 文書・PDF・表データ・メール作成を補助する Python 3.10 向けの CLI 集です。人が保守できることを優先し、CLI は `mytools/`、再利用可能な処理は `mytools/common/`、ユースケース単位の処理は `mytools/jobs/` に分離しています。
 
-業務効率化の早期実装対象として、次の CLI を追加済みです。
+Windows と Linux の双方を対象にしています。ただし Outlook COM を使うメール下書き作成だけは Windows 専用です。
 
-- `mytools.generate_mail_yaml`: メールテンプレートから Outlook 下書き作成用 YAML を生成する
-- `mytools.audit_files`: 指定フォルダ配下のファイルを棚卸しし、Markdown / JSON サマリや CSV 一覧を出力する
-- `mytools.batch_convert`: Markdown / docx / PDF の既存変換処理を複数ファイルへまとめて適用する
-- `mytools.generate_report`: CSV / xlsx から Markdown 集計レポートを生成する
+## できること
 
-関連ドキュメント:
+| コマンド | 用途 | 主な出力 | Windows | Linux |
+| --- | --- | --- | --- | --- |
+| `create_mail_draft` | YAML から Outlook の新規／返信下書きを作成 | Outlook 下書き | ○（Outlook 必須） | × |
+| `generate_mail_yaml` | テンプレートからメール YAML を生成 | YAML | ○ | ○ |
+| `rename_files` | ファイル名の連番化・接頭辞・接尾辞付与 | ファイル名 | ○ | ○ |
+| `pdf_to_png` | PDF 全ページを PNG 化 | PNG | ○ | ○ |
+| `compare_pdfs` | PDF のページ画像を比較 | 差分 PNG | ○ | ○ |
+| `convert_markdown` | Markdown を HTML / PDF / docx に変換 | 文書 | ○ | ○ |
+| `convert_docx_to_markdown` | docx を Markdown に変換 | Markdown・画像 | ○ | ○ |
+| `audit_files` | フォルダ内のファイルを棚卸し | Markdown / JSON / CSV | ○ | ○ |
+| `batch_convert` | Markdown・docx・PDF を一括変換 | 変換結果・一覧 | ○ | ○ |
+| `generate_report` | CSV / xlsx から Markdown レポートを生成 | Markdown・CSV | ○ | ○ |
+| `mcp_servers.local_only` | ローカル AI クライアント向け MCP サーバー | stdio MCP | ○ | ○ |
 
-- 今後の機能拡張計画: [docs/feature_expansion_plan.md](docs/feature_expansion_plan.md)
-- 優先度 A ツール詳細仕様: [docs/priority_a_tool_spec.md](docs/priority_a_tool_spec.md)
+`○` は Python 依存と後述の外部プログラムを整えた場合です。PDF 関連は PyMuPDF、xlsx 読み込みは openpyxl を使います。
 
-追加依存:
+## 配布後のセットアップ
 
-- `openpyxl`: `generate_report` の `.xlsx` 入力対応で使用
-
-依存は `Pipfile`、`pyproject.toml`、`requirements.txt` に反映済みです。`Pipfile.lock` はこの変更では更新していません。
-
-### 追加ツールの使用例
-
-メール YAML テンプレート生成:
-
-```powershell
-.\scripts\generate_mail_yaml.ps1 .\templates\mail\sample_new.yaml --output .\mail.yaml --var to=user@example.com --var user_name=山田 --dry-run
-python -m mytools.generate_mail_yaml --cwd (Get-Location).Path --template .\templates\mail\sample_new.yaml --output .\mail.yaml --var to=user@example.com --var user_name=山田 --dry-run
-```
-
-ファイル棚卸し:
+ここでは Python **3.10** がすでに利用できることを前提にします。必ずプロジェクトのルートで実行してください。
 
 ```powershell
-.\scripts\audit_files.ps1 .\docs --glob *.md --summary-output .\file_audit.md --dry-run
-python -m mytools.audit_files --cwd (Get-Location).Path --root .\docs --glob *.md --summary-output .\file_audit.md --dry-run
+cd C:\path\to\office_py_tools
+py -3.10 --version
 ```
 
-バッチ変換:
+Linux では `py -3.10` を `python3.10` に読み替えます。
 
-```powershell
-.\scripts\batch_convert.ps1 .\docs --kind markdown --format html --output-dir .\out --dry-run
-python -m mytools.batch_convert --cwd (Get-Location).Path --input-dir .\docs --kind markdown --format html --output-dir .\out --dry-run
-```
+### 方法 A: 配布・利用向け（推奨）
 
-Excel / CSV 集計レポート生成:
+仮想環境を作成すると、OS や案件ごとの依存関係を混ぜずに利用できます。
 
-```powershell
-.\scripts\generate_report.ps1 .\data.csv --config .\config\report_generator.json --output .\report.md --dry-run
-python -m mytools.generate_report --cwd (Get-Location).Path --input .\data.csv --config .\config\report_generator.json --output .\report.md --dry-run
-```
-
-構文確認:
-
-```powershell
-python -m compileall mytools mcp_servers
-```
-
-Office 関連の作業を Python で補助するための小さな CLI ツール群です。
-
-現在は次の機能を提供しています。
-
-- YAML のメール定義から Outlook の下書きを作成する
-- Outlook で選択中のメールへの返信下書きを作成する
-- 複数ファイルのファイル名を一括変更する
-- PDF の各ページを PNG 画像へ変換する
-- 2 つの PDF をページごとに画像比較し、差分 PNG を出力する
-- AI クライアント向けのローカル MCP サーバーで日本の曜日・祝日情報を返す
-
-## 動作環境
-
-- Python 3.10 以上
-- Windows PowerShell、または POSIX 互換 shell
-- 依存パッケージ
-    - `PyYAML`
-    - `PyMuPDF`
-    - `jpholiday`
-    - `mcp`
-    - `pywin32`（Windows のみ）
-
-Outlook 下書き作成ツールは Windows、Microsoft Outlook、`pywin32`、Outlook COM を前提にしています。Linux、macOS、WSL では Outlook COM を利用できないため、Outlook 下書き作成の実動作確認はできません。
-
-PDF 変換と PDF 比較には `PyMuPDF` を使います。
-
-MCP サーバーには `mcp` と `jpholiday` を使います。詳細は [mcp_servers/README.md](mcp_servers/README.md) と [mcp_servers/local_only/README.md](mcp_servers/local_only/README.md) を参照してください。
-
-## セットアップ
-
-### 1. リポジトリへ移動
-
-```powershell
-cd "C:\path\to\py_tools"
-```
-
-以降のコマンドは、プロジェクトルートで実行する前提です。
-
-### 2. Python バージョンを確認
-
-```powershell
-python --version
-```
-
-Python 3.10 以上が使われていることを確認してください。`Pipfile` は Python 3.10 を前提にしています。
-
-### 3. Windows で Python パッケージをインストールする参考手順
-
-Windows では、Python インストール時に `py` ランチャーが利用できる場合があります。複数バージョンの Python が入っている環境では、次のように Python 3.10 を指定して `pip` を実行できます。
-
-```powershell
-py -3.10 -m pip --version
-py -3.10 -m pip install -r requirements.txt
-```
-
-`python` コマンドが利用したい Python を指している環境では、次の形式でも同じ依存パッケージをインストールできます。
-
-```powershell
-python -m pip install -r requirements.txt
-```
-
-このプロジェクトを直接利用するだけであれば、通常は `requirements.txt` からインストールすれば十分です。個別にインストールする場合は、主に次のパッケージが必要です。
-
-```powershell
-python -m pip install PyYAML PyMuPDF jpholiday mcp
-python -m pip install pywin32
-```
-
-`pywin32` は Windows + Outlook 連携で使用します。Windows 以外では `requirements.txt` の条件指定により `pywin32` はインストール対象外になります。
-
-プロジェクトごとに依存関係を分けたい場合は、標準の仮想環境を作成してからインストールできます。
+Windows PowerShell:
 
 ```powershell
 py -3.10 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-PowerShell の実行ポリシーにより仮想環境の有効化が止まる場合は、組織や端末の運用ルールに従って設定を確認してください。
+Linux (bash):
 
-### 4. 開発環境を用意する場合
-
-Pipenv を使う場合は、開発用依存も含めてインストールします。
-
-```powershell
-pipenv install --dev
-```
-
-Python コマンドを Pipenv 環境内で実行する場合は、次のように `pipenv run` を付けます。
-
-```powershell
-pipenv run python -m compileall mytools mcp_servers
-```
-
-### 5. Pipenv を使わない実行環境を用意する場合
-
-実行時依存だけをインストールします。
-
-```powershell
+```sh
+python3.10 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-editable install して MCP 用の console script を使う場合は、次のようにインストールします。
+`requirements.txt` には実行時依存だけを記載しています。Windows では条件付きで `pywin32` も入ります。ソースを Python パッケージとしても使う、または MCP のコマンド名を登録したい場合は、続けて次を実行します。
 
-```powershell
+```sh
 python -m pip install -e .
 ```
 
-## ツール 1: Outlook 下書き作成
+### 方法 B: 開発向け（Pipenv）
 
-YAML ファイルに定義した宛先、件名、本文、添付ファイルから Outlook のメール下書きを作成します。
-
-### 新規メールの YAML
-
-```yaml
-to:
-  - user@example.com
-cc:
-  - cc@example.com
-bcc:
-  - bcc@example.com
-subject: |
-  件名
-body: |
-  本文
-attachments:
-  - ./path/to/file.pdf
-```
-
-必須項目:
-
-- `to`: 1 件以上の文字列配列
-- `subject`: 文字列
-- `body`: 文字列
-
-任意項目:
-
-- `cc`: 文字列配列。省略時は空配列
-- `bcc`: 文字列配列。省略時は空配列
-- `attachments`: 文字列配列。省略時は空配列
-- `mode`: `new` または `reply`。省略時は `new`
-
-添付ファイルは、存在する通常ファイルである必要があります。ラッパースクリプトまたは `--cwd` を使って実行する場合、YAML 内の `attachments` の相対パスはコマンドを実行したディレクトリ基準で解釈されます。
-
-### 返信メールの YAML
-
-既存メールへの返信下書きを作る場合は、Outlook で返信したいメールを 1 件だけ選択してから、YAML に `mode: reply` を指定するか、CLI で `--mode reply` を指定してください。
-
-返信モードでは `body` が必須、`attachments` が任意です。宛先と件名は Outlook の返信作成処理に任せるため、`to` と `subject` は不要です。
-
-```yaml
-mode: reply
-body: |
-  返信本文
-attachments:
-  - ./path/to/file.pdf
-```
-
-全員に返信する場合は、YAML に `reply_all: true` を指定できます。
-
-```yaml
-mode: reply
-reply_all: true
-body: |
-  返信本文
-```
-
-返信対象の指定方法は現在 `selected` のみです。Outlook で複数アイテムを選択している場合や、メール以外を選択している場合はエラーになります。
-
-### PowerShell ラッパーで実行
-
-```powershell
-.\scripts\create_mail_draft.ps1 .\mail.yaml
-```
-
-下書きを画面表示せず Outlook の下書きへ保存する場合:
-
-```powershell
-.\scripts\create_mail_draft.ps1 .\mail.yaml --no-show
-```
-
-返信モードを CLI で明示する場合:
-
-```powershell
-.\scripts\create_mail_draft.ps1 .\reply.yaml --mode reply
-.\scripts\create_mail_draft.ps1 .\reply.yaml --mode reply --reply-all
-```
-
-### POSIX shell ラッパーで実行
+Pipenv を使う場合は、リポジトリの `Pipfile` を唯一の開発環境定義として使います。
 
 ```sh
-./scripts/create_mail_draft.sh ./mail.yaml
-./scripts/create_mail_draft.sh ./mail.yaml --no-show
-```
-
-### Python モジュールとして直接実行
-
-```powershell
-python -m mytools.create_mail_draft --yaml-path .\mail.yaml --cwd (Get-Location).Path
-python -m mytools.create_mail_draft --yaml-path .\reply.yaml --cwd (Get-Location).Path --mode reply
-```
-
-Pipenv 環境で実行する場合:
-
-```powershell
-pipenv run python -m mytools.create_mail_draft --yaml-path .\mail.yaml --cwd (Get-Location).Path
-```
-
-## ツール 2: ファイル名一括変更
-
-複数ファイルに対して、次の 3 種類のリネーム操作を行えます。
-
-- `basename`: 共通のベース名と連番でリネームする
-- `prefix`: ファイル名の先頭に文字列を追加する
-- `suffix`: 拡張子の前に文字列を追加する
-
-実ファイルを変更するため、事前に `--dry-run` で変更予定を確認することを推奨します。
-
-### basename
-
-複数ファイルを `report_01.txt`、`report_02.txt` のようにリネームします。
-
-PowerShell:
-
-```powershell
-.\scripts\rename_files.ps1 basename report .\a.txt .\b.txt --dry-run
-.\scripts\rename_files.ps1 basename report .\a.txt .\b.txt
-```
-
-POSIX shell:
-
-```sh
-./scripts/rename_files.sh basename report ./a.txt ./b.txt --dry-run
-./scripts/rename_files.sh basename report ./a.txt ./b.txt
-```
-
-Python モジュールとして直接実行:
-
-```powershell
-python -m mytools.rename_files --cwd (Get-Location).Path --operation basename --base-name report --path .\a.txt --path .\b.txt --dry-run
-```
-
-主なオプション:
-
-- `--start <数値>`: 連番の開始値。既定値は `1`
-- `--padding <桁数>`: 連番のゼロ埋め桁数。未指定時は複数ファイルの場合に自動設定
-- `--separator <文字列>`: ベース名と連番の区切り文字。既定値は `_`
-
-例:
-
-```powershell
-.\scripts\rename_files.ps1 basename report .\a.txt .\b.txt --start 3 --padding 3 --separator -
-```
-
-この場合、`report-003.txt`、`report-004.txt` のような名前になります。
-
-### prefix
-
-ファイル名の先頭に文字列を追加します。
-
-```powershell
-.\scripts\rename_files.ps1 prefix old_ .\a.txt --dry-run
-.\scripts\rename_files.ps1 prefix old_ .\a.txt
-```
-
-Python モジュールとして直接実行:
-
-```powershell
-python -m mytools.rename_files --cwd (Get-Location).Path --operation prefix --prefix old_ --path .\a.txt --dry-run
-```
-
-### suffix
-
-拡張子の前に文字列を追加します。
-
-```powershell
-.\scripts\rename_files.ps1 suffix _done .\a.txt --dry-run
-.\scripts\rename_files.ps1 suffix _done .\a.txt
-```
-
-Python モジュールとして直接実行:
-
-```powershell
-python -m mytools.rename_files --cwd (Get-Location).Path --operation suffix --suffix _done --path .\a.txt --dry-run
-```
-
-### 上書きについて
-
-変更後のファイル名がすでに存在する場合、既定ではエラーになります。既存ファイルを上書きする場合だけ `--overwrite` を指定してください。
-
-```powershell
-.\scripts\rename_files.ps1 prefix old_ .\a.txt --overwrite
-```
-
-## ツール 3: PDF を PNG へ変換
-
-PDF の全ページを PNG 画像に変換します。既定の出力先は、PDF と同じ場所に作られる `img_<PDF名>` ディレクトリです。
-
-PowerShell:
-
-```powershell
-.\scripts\pdf2png.ps1 .\sample.pdf --dry-run
-.\scripts\pdf2png.ps1 .\sample.pdf
-```
-
-出力先や画質を指定する場合:
-
-```powershell
-.\scripts\pdf2png.ps1 .\sample.pdf --output-dir .\images --quality high
-```
-
-Python モジュールとして直接実行:
-
-```powershell
-python -m mytools.pdf_to_png --cwd (Get-Location).Path --pdf-path .\sample.pdf --dry-run
-```
-
-主なオプション:
-
-- `--quality <low|medium|high>`: 変換品質。`low=150DPI`、`medium=300DPI`、`high=600DPI`。既定値は `medium`
-- `--output-dir <dir>`: PNG 画像の出力先ディレクトリ
-- `--dry-run`: 実際には作成せず、作成予定の PNG ファイルを表示する
-- `--overwrite`: 出力先 PNG が既に存在する場合に上書きする
-
-## ツール 4: PDF 比較
-
-2 つの PDF をページごとに画像化して比較し、差分があるページの PNG を出力します。既定の出力先は、比較元 PDF と同じ場所に作られる `diff_<left>__<right>` ディレクトリです。差分画像は `diff_pages` 配下に出力されます。
-
-PowerShell:
-
-```powershell
-.\scripts\compare_pdfs.ps1 .\old.pdf .\new.pdf
-```
-
-画質、許容差、出力先を指定する場合:
-
-```powershell
-.\scripts\compare_pdfs.ps1 .\old.pdf .\new.pdf --quality high --threshold 5 --output-dir .\pdf_diff
-```
-
-Python モジュールとして直接実行:
-
-```powershell
-python -m mytools.compare_pdfs --cwd (Get-Location).Path --left-pdf .\old.pdf --right-pdf .\new.pdf
-```
-
-主なオプション:
-
-- `--quality <low|medium|high>`: 比較時の画像化品質。`low=150DPI`、`medium=300DPI`、`high=600DPI`。既定値は `medium`
-- `--threshold <0-255>`: RGB 各チャンネルの差分許容値。`0` は完全一致比較
-- `--output-dir <dir>`: 差分画像の出力先ディレクトリ
-- `--overwrite`: 出力先 PNG が既に存在する場合に上書きする
-
-終了コード:
-
-- `0`: 差分なし
-- `1`: 差分あり
-- `2`: 実行エラー
-
-## ツール 5: ローカル MCP サーバー
-
-`mcp_servers/local_only` には、AI クライアントからローカル stdio MCP サーバーとして利用するための機能があります。現在は `get_japanese_date_info` ツールを公開しています。
-
-`get_japanese_date_info` は `YYYY-MM-DD` の日付から、曜日、日本の祝日名、休日判定、営業日可否を返します。
-
-Pipenv を使う場合:
-
-```powershell
-pipenv run python -m mcp_servers.local_only.server
-```
-
-Pipenv を使わない場合:
-
-```powershell
-python -m mcp_servers.local_only.server
-```
-
-editable install 済みの場合:
-
-```powershell
-office-py-tools-mcp-local-only
-```
-
-Claude Desktop や Codex 向けの設定例を生成する場合:
-
-```powershell
-python -m mcp_servers.local_only.generate_client_config --client claude --runner pipenv
-python -m mcp_servers.local_only.generate_client_config --client codex --runner pipenv
-```
-
-editable install 済みの場合は、次のコマンドでも設定例を生成できます。
-
-```powershell
-office-py-tools-mcp-config --client codex --runner python
-```
-
-クライアントごとの詳しい設定は [mcp_servers/local_only/README.md](mcp_servers/local_only/README.md) を参照してください。
-
-## パス指定の考え方
-
-ラッパースクリプトは、呼び出し元のカレントディレクトリを Python 側へ `--cwd` として渡します。そのため、メール YAML のパス、YAML 内の添付ファイル、リネーム対象ファイル、PDF ファイル、出力先ディレクトリは、基本的にコマンドを実行したディレクトリからの相対パスとして指定できます。
-
-例:
-
-```powershell
-cd C:\work
-C:\path\to\py_tools\scripts\rename_files.ps1 prefix old_ .\a.txt --dry-run
-```
-
-この場合、`.\a.txt` は `C:\work\a.txt` として解釈されます。
-
-## 動作確認
-
-構文チェック:
-
-```powershell
-python -m compileall mytools mcp_servers
-```
-
-Pipenv 環境を使う場合:
-
-```powershell
+python -m pip install pipenv
+pipenv --python 3.10
+pipenv install --dev
 pipenv run python -m compileall mytools mcp_servers
 ```
 
-ファイル名一括変更の動作確認:
+依存を追加・変更するときは、`Pipfile`、`pyproject.toml`、`requirements.txt` の三つを同時に確認してください。`Pipfile.lock` の扱いを変更する場合は、プロジェクトの運用ルールに従ってください。
 
-```powershell
-New-Item -ItemType File .\a.txt
-New-Item -ItemType File .\b.txt
-.\scripts\rename_files.ps1 basename report .\a.txt .\b.txt --dry-run
+## OS ごとの前提と機能差
+
+### Windows
+
+- Outlook 下書き作成には、デスクトップ版 Microsoft Outlook と、同じユーザーで利用できる Outlook プロファイルが必要です。`pywin32` 経由で COM を呼び出すため、WSL からは実行できません。
+- PowerShell ラッパーは `scripts/*.ps1` です。実行ポリシーで止まる場合は、組織のルールに従ってスコープを限定して許可してください。ポリシーの恒久的な変更は不要です。
+- Markdown から PDF を作る WeasyPrint は、環境によって追加のネイティブ DLL が必要になることがあります。エラー時は [WeasyPrint の公式インストール手順](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html) に従ってください。
+
+### Linux
+
+- `create_mail_draft` は利用できません。Outlook COM は Windows のデスクトップ Outlook 専用です。メール YAML の生成だけは利用できます。
+- Markdown/docx 変換には後述の Pandoc を OS のパッケージマネージャー等で別途導入します。
+- WeasyPrint がライブラリ不足で起動しない場合は、ディストリビューションの Cairo、Pango、GDK-PixBuf などの依存パッケージを導入してください。必要な組合せはディストリビューションと WeasyPrint のバージョンで異なります。
+- shell ラッパーを実行する前に必要なら `chmod +x scripts/*.sh` を行います。
+
+### 共通の外部依存
+
+`convert_markdown` と `convert_docx_to_markdown`、およびそれらを含む `batch_convert` は、Python パッケージとは別に **Pandoc** コマンドを必要とします。導入後、次で確認します。
+
+```sh
+pandoc --version
 ```
 
-PDF 変換の動作確認:
+PDF 出力には Pandoc と WeasyPrint が必要です。`pypandoc` は Python 側から Pandoc を扱うためのパッケージであり、Pandoc 本体の代わりにはなりません。
 
-```powershell
-.\scripts\pdf2png.ps1 .\sample.pdf --dry-run
+## 実行方法の共通ルール
+
+すべての Python CLI はモジュールとして起動します。
+
+```sh
+python -m mytools.<command> --cwd "実行時の基準ディレクトリ" ...
 ```
 
-Outlook 下書き作成の実動作確認は、Windows、Outlook、`pywin32` が利用できる環境で行ってください。
+`--cwd` は相対パスを解決する基準です。ラッパーは、呼び出した場所を自動で `--cwd` に渡します。直接 Python を実行する場合は必ず明示してください。ファイルを変更・生成するコマンドは、まず `--dry-run` で計画を確認することを推奨します。
 
-## 既知の注意点
+各コマンドの完全な引数は次で確認できます。
 
-- Outlook 下書き作成は Outlook COM に依存するため、Windows 以外では実行できません。
-- PDF 変換と PDF 比較は PDF のページを画像化して処理します。`--quality high` は出力画像が大きくなり、処理時間も長くなります。
-- PDF 比較は画像比較のため、見た目が同じであれば内部構造の違いは検出しません。
-- `Pipfile` は Python 3.10 を前提にしています。Python 3.11 以上で使う場合は、依存パッケージの互換性を確認してください。
+```sh
+python -m mytools.rename_files --help
+```
+
+## CLI の使用例
+
+以下の例では `.` が作業ディレクトリです。Windows ではパス区切りを `\` に読み替えて構いません。
+
+### Outlook 下書き（Windows のみ）
+
+```yaml
+# mail.yaml
+to:
+  - user@example.com
+subject: 件名
+body: |
+  本文です。
+attachments:
+  - ./attachment.pdf
+```
+
+```powershell
+.\scripts\create_mail_draft.ps1 .\mail.yaml
+# または
+python -m mytools.create_mail_draft --cwd (Get-Location).Path --yaml-path .\mail.yaml
+```
+
+新規メールは `mode: new`（既定値）、Outlook で選択中のメールへの返信は `mode: reply` を YAML に指定します。返信では Outlook 上で対象メールをちょうど 1 件選択してから実行してください。
+
+### メール YAML の生成
+
+```sh
+python -m mytools.generate_mail_yaml --cwd "$PWD" \
+  --template templates/mail/sample_new.yaml --output mail.yaml \
+  --var to=user@example.com --var user_name="山田太郎" --dry-run
+```
+
+`--var key=value` と `--vars-file`（YAML / JSON）でテンプレート変数を指定できます。出力するには `--dry-run` を外し、既存ファイルを置き換える場合だけ `--overwrite` を指定します。
+
+### ファイル名の一括変更
+
+```sh
+python -m mytools.rename_files --cwd "$PWD" --operation basename \
+  --base-name report --path ./a.txt --path ./b.txt --dry-run
+python -m mytools.rename_files --cwd "$PWD" --operation prefix \
+  --prefix old_ --path ./a.txt
+python -m mytools.rename_files --cwd "$PWD" --operation suffix \
+  --suffix _done --path ./a.txt
+```
+
+`basename` は複数ファイルで `report_01.txt` のように連番化します。衝突は既定でエラーになり、`--overwrite` を付けた場合だけ既存の対象を置き換えます。
+
+### PDF の画像化・比較
+
+```sh
+python -m mytools.pdf_to_png --cwd "$PWD" --pdf-path ./sample.pdf --dry-run
+python -m mytools.compare_pdfs --cwd "$PWD" \
+  --left-pdf ./old.pdf --right-pdf ./new.pdf --quality high --threshold 5
+```
+
+品質は `low` (150 DPI)、`medium` (300 DPI、既定)、`high` (600 DPI) です。比較コマンドの終了コードは、差分なしが 0、差分ありが 1、実行エラーが 2 です。自動検査ではこの違いを利用できます。
+
+### Markdown / docx の変換
+
+```sh
+python -m mytools.convert_markdown --cwd "$PWD" --input ./document.md --format html --dry-run
+python -m mytools.convert_markdown --cwd "$PWD" --input ./document.md --format pdf --out-dir ./out
+python -m mytools.convert_docx_to_markdown --cwd "$PWD" --input ./document.docx --output ./document.md
+```
+
+設定ファイルは `config/markdown_converter.json` と `config/docx_to_markdown.json` です。CSS、Word テンプレート、メディア抽出の設定はここで管理します。CLI 引数は設定値より優先されます。
+
+### 棚卸し・一括変換・レポート
+
+```sh
+python -m mytools.audit_files --cwd "$PWD" --root ./docs --glob "*.md" --summary-output ./audit.md --dry-run
+python -m mytools.batch_convert --cwd "$PWD" --input-dir ./docs --kind markdown --format html --output-dir ./out --dry-run
+python -m mytools.generate_report --cwd "$PWD" --input ./data.csv --config ./config/report_generator.json --output ./report.md --dry-run
+```
+
+サンプル設定は `config/`、レポートテンプレートは `templates/reports/` にあります。実運用ではコピーして案件ごとの名前に変更し、リポジトリ既定の設定を直接壊さないでください。
+
+## ラッパースクリプト
+
+人が直接使う場合は `scripts/` のラッパーも利用できます。ラッパーは位置引数を受け取り、Python 側には名前付き引数として渡す責務を持ちます。
+
+| 機能 | PowerShell | shell |
+| --- | --- | --- |
+| メール YAML / 下書き | `generate_mail_yaml.ps1`, `create_mail_draft.ps1` | `.sh` あり |
+| リネーム | `rename_files.ps1` | `.sh` あり |
+| PNG 化 | `pdf2png.ps1` | なし |
+| PDF 比較 | `compare_pdfs.ps1` | なし |
+| Markdown / docx 変換 | `convert_markdown.ps1`, `convert_docx_to_markdown.ps1` | `.sh` あり |
+| 棚卸し・一括変換・レポート | `.ps1` あり | `.sh` あり |
+
+Linux で PowerShell 専用の 2 機能を使う場合は、上記の Python モジュールを直接実行してください。
+
+## 構成と保守方針
+
+```text
+mytools/
+  <command>.py       # argparse、表示、終了コードのみを担当する CLI
+  common/            # パス・PDF・Markdown・表などの再利用ライブラリ
+  jobs/              # ユースケースごとの Request / Plan / 実行処理
+scripts/             # OS シェル向けの薄いラッパー
+config/              # 既定の JSON 設定
+templates/           # メール・レポートのテンプレート
+mcp_servers/         # AI クライアント用の stdio MCP サーバー
+```
+
+新機能は、まず `common/` に副作用の少ない小さなライブラリとして置き、次に `jobs/` に入力データクラス・検証・計画・実行を組み立て、最後に CLI を薄く追加してください。ファイルを変更する処理には `dry_run` と衝突検証を用意してください。Windows 固有の依存は import 時ではなく実行時に扱い、Linux 上でもモジュールを import できる状態を維持します。
+
+## MCP サーバー
+
+ローカル MCP サーバーは現在、日本の日付・祝日情報を返す読み取り専用ツール `get_japanese_date_info` を公開します。
+
+```sh
+python -m mcp_servers.local_only.server
+python -m mcp_servers.local_only.generate_client_config --client codex --runner python
+```
+
+`pip install -e .` 済みなら `office-py-tools-mcp-local-only` と `office-py-tools-mcp-config` も使えます。生成された設定中のリポジトリパスは、配布先の絶対パスへ置き換えてください。
+
+## 検証
+
+変更後の最小検証は次です。
+
+```sh
+python -m compileall mytools mcp_servers
+python -m mytools.rename_files --help
+python -m mytools.pdf_to_png --help
+```
+
+Outlook 実連携は Windows・Outlook がある環境でのみ確認します。それ以外の OS では、YAML の検証、パス解決、PDF・変換処理、COM オブジェクトを使わないロジックを中心に検証してください。

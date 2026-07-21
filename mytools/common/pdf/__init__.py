@@ -13,6 +13,7 @@ from mytools.common.pdf.image_diff import (
     build_default_diff_output_dir,
     compare_pdf_pages_as_images,
 )
+from mytools.common.pdf.quality import QUALITY_DPI_MAP, quality_to_dpi
 
 __all__ = [
     "PdfPageImage",
@@ -24,4 +25,6 @@ __all__ = [
     "convert_pdf_to_png_images",
     "get_pdf_page_count",
     "plan_pdf_to_png_images",
+    "QUALITY_DPI_MAP",
+    "quality_to_dpi",
 ]
