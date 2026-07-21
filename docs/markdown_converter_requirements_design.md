@@ -50,14 +50,14 @@ Word では、指定された Word テンプレート（dotx）またはそれ�
 例:
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format html --output .\output.html
+.\scripts\convert_markdown.ps1 .\input.md --format html
 ```
 
 CSS を指定できる。
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format html --output .\output.html --css .\style.css
-.\scripts\convert_markdown.ps1 .\input.md --format html --output .\output.html --css https://example.com/style.css
+.\scripts\convert_markdown.ps1 .\input.md --format html --css .\style.css
+.\scripts\convert_markdown.ps1 .\input.md --format html --out-dir .\out --css https://example.com/style.css
 ```
 
 ### 3.2 PDF 変換
@@ -65,13 +65,13 @@ CSS を指定できる。
 利用者は Markdown を PDF に変換できる。
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format pdf --output .\output.pdf
+.\scripts\convert_markdown.ps1 .\input.md --format pdf
 ```
 
 PDF 変換でも CSS を指定できる。
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format pdf --output .\output.pdf --css .\style.css
+.\scripts\convert_markdown.ps1 .\input.md --format pdf --out-dir .\out --css .\style.css
 ```
 
 PDF ではページサイズや余白など、CSS のページメディア指定で制御することを基本とする。
@@ -81,13 +81,13 @@ PDF ではページサイズや余白など、CSS のページメディア指定
 利用者は Markdown を docx に変換できる。
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format docx --output .\output.docx
+.\scripts\convert_markdown.ps1 .\input.md --format docx
 ```
 
 Word テンプレートを指定できる。
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format docx --output .\output.docx --template .\template.dotx
+.\scripts\convert_markdown.ps1 .\input.md --format docx --out-dir .\out --template .\template.dotx
 ```
 
 初期実装では、テンプレートは主に Word スタイルを反映するために使う。本文をテンプレート内の特定位置に差し込む用途は対象外とする。
@@ -99,20 +99,20 @@ Word テンプレートを指定できる。
 Python モジュール:
 
 ```powershell
-python -m mytools.convert_markdown --cwd (Get-Location).Path --input .\input.md --format pdf --output .\output.pdf
+python -m mytools.convert_markdown --cwd (Get-Location).Path --input .\input.md --format pdf
 ```
 
 PowerShell ラッパー:
 
 ```powershell
-.\scripts\convert_markdown.ps1 .\input.md --format pdf --output .\output.pdf
-.\scripts\convert_markdown.ps1 .\input.md -f pdf --output .\output.pdf
+.\scripts\convert_markdown.ps1 .\input.md --format pdf
+.\scripts\convert_markdown.ps1 .\input.md -f pdf --out-dir .\out
 ```
 
 POSIX shell ラッパー:
 
 ```sh
-./scripts/convert_markdown.sh ./input.md --format pdf --output ./output.pdf
+./scripts/convert_markdown.sh ./input.md --format pdf --out-dir ./out
 ```
 
 Python 側の引数:
@@ -121,7 +121,7 @@ Python 側の引数:
 - `--input <path>`: 入力 Markdown ファイル。
 - `--format <html|pdf|docx>`: 出力形式。
 - `-f <html|pdf|docx>`: `--format` の短縮形。
-- `--output <path>`: 出力先ファイル。
+- `--out-dir <dir>`: 出力先ディレクトリ。省略時は入力 Markdown ファイルと同じディレクトリ。出力ファイル名は入力ファイルの basename に出力形式の拡張子を付けたものとする。
 - `--css <path-or-url>`: HTML / PDF 用 CSS。複数指定可能。
 - `--template <path>`: Word 用テンプレート。dotx または docx を許可する。
 - `--config <path>`: Markdown 変換設定 JSON。省略時は `config/markdown_converter.json` を使う。
@@ -138,6 +138,15 @@ Python 側の引数:
 
 プロジェクト既定の設定ファイルは `config/markdown_converter.json` とする。
 設定ファイルに書かれたローカルパスは、設定ファイルの配置ディレクトリを基準に解決する。
+
+`--config` を指定しない場合は、次の順で設定ファイルを選択する。
+
+1. 実行ディレクトリの `config/markdown_converter.json`
+2. ホームディレクトリの `~/.config/markdown_converter.json`
+3. プロジェクト既定の `config/markdown_converter.json`
+4. 設定ファイルが見つからない場合は組み込みの既定値
+
+`--config` を指定した場合は、上記より優先する。
 
 基本形式:
 
@@ -165,7 +174,7 @@ docx の `template` は既定テンプレートとして使われ、CLI の `--t
 - `--input` は存在する通常ファイルであること。
 - 入力拡張子は `.md` または `.markdown` を推奨する。異なる拡張子は警告に留める。
 - `--format` は `html`、`pdf`、`docx` のいずれか。
-- `--output` の親ディレクトリが存在すること。
+- `--out-dir` を指定した場合は、そのディレクトリが存在すること。省略時は入力ファイルと同じディレクトリを使うこと。
 - 出力先が存在し、`--overwrite` がない場合はエラーにする。
 - `--css` は `html` / `pdf` のときだけ有効。`docx` 指定時に渡された場合はエラーにする。
 - `--template` は `docx` のときだけ有効。`html` / `pdf` 指定時に渡された場合はエラーにする。
@@ -278,7 +287,7 @@ CSS 指定は複数許可する。
 
 ### 5.2 セキュリティ
 
-- ローカルファイルへの書き込みは `--output` で指定されたファイルに限定する。
+- ローカルファイルへの書き込みは、入力ファイルと同名・出力形式の拡張子で決まる出力ファイルに限定する。`--out-dir` 指定時も、そのディレクトリ配下に限定する。
 - 出力先の上書きは `--overwrite` 指定時のみ許可する。
 - URL CSS は `http` / `https` のみ許可する。
 - Markdown 内の HTML を許可するかは Pandoc の既定動作に従う。厳格化が必要な場合は後続で `--safe` 相当のモードを検討する。

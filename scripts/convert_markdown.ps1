@@ -5,12 +5,13 @@ param(
 
 if ($CliArgs.Count -lt 1) {
     Write-Host "Usage:"
-    Write-Host "  .\convert_markdown.ps1 <markdown_path> -f <html|pdf|docx> --output <output_path> [options]"
+    Write-Host "  .\convert_markdown.ps1 <markdown_path> -f <html|pdf|docx> [--out-dir <output_dir>] [options]"
     Write-Host ""
     Write-Host "Options:"
+    Write-Host "  --out-dir <path>          Output directory. Defaults to the input file directory."
     Write-Host "  --css <path-or-url>       CSS for HTML / PDF. Can be specified multiple times."
     Write-Host "  --template <path>         Word template or reference doc for docx."
-    Write-Host "  --config <path>           Converter config JSON. Defaults to config/markdown_converter.json."
+    Write-Host "  --config <path>           Converter config JSON. Defaults to invocation, ~/.config, then project config."
     Write-Host "  --no-default-css          Do not use CSS from config."
     Write-Host "  --no-default-template     Do not use Word template from config."
     Write-Host "  --standalone              Write standalone HTML."
@@ -19,9 +20,9 @@ if ($CliArgs.Count -lt 1) {
     Write-Host "  --overwrite               Overwrite existing output file."
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  .\convert_markdown.ps1 .\input.md -f html --output .\output.html --css .\style.css"
-    Write-Host "  .\convert_markdown.ps1 .\input.md -f pdf --output .\output.pdf --css https://example.com/style.css"
-    Write-Host "  .\convert_markdown.ps1 .\input.md -f docx --output .\output.docx --template .\template.dotx"
+    Write-Host "  .\convert_markdown.ps1 .\input.md -f html --css .\style.css"
+    Write-Host "  .\convert_markdown.ps1 .\input.md -f pdf --out-dir .\out --css https://example.com/style.css"
+    Write-Host "  .\convert_markdown.ps1 .\input.md -f docx --out-dir .\out --template .\template.dotx"
     Write-Host ""
     return
 }
@@ -37,7 +38,7 @@ while ($Index -lt $RestArgs.Count) {
         $PythonArgs += $Arg
         $Index += 1
     }
-    elseif ($Arg -in @("-f", "--format", "--output", "--css", "--template", "--config")) {
+    elseif ($Arg -in @("-f", "--format", "--out-dir", "--css", "--template", "--config")) {
         if (($Index + 1) -ge $RestArgs.Count) {
             Write-Error "$Arg requires a value."
             return

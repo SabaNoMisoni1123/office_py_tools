@@ -2,6 +2,7 @@ jpholiday
 mcp
 openpyxl
 PyMuPDF
+pypandoc
 PyYAML
 pywin32; sys_platform == "win32"
 weasyprint

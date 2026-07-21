@@ -4,12 +4,13 @@ set -euo pipefail
 
 if [ "$#" -lt 1 ]; then
     echo "使い方:"
-    echo "  ./convert_markdown.sh <markdown_path> -f <html|pdf|docx> --output <output_path> [options]"
+    echo "  ./convert_markdown.sh <markdown_path> -f <html|pdf|docx> [--out-dir <output_dir>] [options]"
     echo ""
     echo "Options:"
+    echo "  --out-dir <path>          出力先ディレクトリ。省略時は入力ファイルと同じディレクトリ。"
     echo "  --css <path-or-url>       HTML / PDF に適用する CSS。複数指定できます。"
     echo "  --template <path>         docx 出力で使う Word テンプレートまたは参照文書。"
-    echo "  --config <path>           変換設定 JSON。省略時は config/markdown_converter.json。"
+    echo "  --config <path>           変換設定 JSON。省略時は実行ディレクトリ、~/.config、プロジェクト既定の順で探索。"
     echo "  --no-default-css          設定ファイルの既定 CSS を使いません。"
     echo "  --no-default-template     設定ファイルの既定 Word テンプレートを使いません。"
     echo "  --standalone              HTML を完全な文書として出力します。"
@@ -31,7 +32,7 @@ while [ "$#" -gt 0 ]; do
             PYTHON_ARGS+=("$1")
             shift
             ;;
-        -f|--format|--output|--css|--template|--config)
+        -f|--format|--out-dir|--css|--template|--config)
             if [ "$#" -lt 2 ]; then
                 echo "エラー: $1 には値が必要です。" >&2
                 exit 1

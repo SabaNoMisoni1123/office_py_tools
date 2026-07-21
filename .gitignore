@@ -58,5 +58,6 @@ Thumbs.db
 # Other
 # =========================
 # ignore test files
+**/*.markdown
 test*
 **/test/
