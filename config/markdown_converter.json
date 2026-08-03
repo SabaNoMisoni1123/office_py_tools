@@ -1,12 +1,19 @@
 {
-  "html": {
-    "css": [],
-    "standalone": true
-  },
-  "pdf": {
-    "css": []
-  },
-  "docx": {
-    "template": null
-  }
+    "default_format": "html",
+    "recursive": false,
+    "dry_run": false,
+    "overwrite": false,
+    "use_default_css": true,
+    "use_default_template": true,
+    "skip_containing": [],
+    "html": {
+        "css": [],
+        "standalone": true
+    },
+    "pdf": {
+        "css": []
+    },
+    "docx": {
+        "template": null
+    }
 }

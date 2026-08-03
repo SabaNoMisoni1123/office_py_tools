@@ -37,10 +37,14 @@ def main() -> int:
         if parsed_arg.output_dir is not None
         else input_path.parent
     )
-    output_path = build_output_path(
-        input_path=input_path,
-        output_dir=output_dir,
-        output_format=parsed_arg.output_format,
+    output_path = (
+        output_dir / validate_output_name(parsed_arg.output_name)
+        if parsed_arg.output_name is not None
+        else build_output_path(
+            input_path=input_path,
+            output_dir=output_dir,
+            output_format=parsed_arg.output_format,
+        )
     )
 
     try:
@@ -104,6 +108,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "出力先ディレクトリ。省略時は入力 Markdown ファイルと同じディレクトリに出力します。"
         ),
+    )
+    parser.add_argument(
+        "--output-name",
+        help="出力ファイル名。省略時は入力ファイル名を使用します。",
     )
     parser.add_argument(
         "--css",
@@ -183,6 +191,14 @@ def build_output_path(
 ) -> Path:
     """入力ファイル名を保ったまま、出力形式に対応する拡張子を付ける。"""
     return output_dir / f"{input_path.stem}.{output_format}"
+
+
+def validate_output_name(output_name: str) -> str:
+    """出力名には出力ディレクトリ配下のファイル名だけを指定させる。"""
+    path = Path(output_name)
+    if path.name != output_name or path.is_absolute() or output_name in {"", ".", ".."}:
+        raise ValueError("--output-name にはパスを含めないファイル名を指定してください。")
+    return output_name
 
 
 def build_effective_css_sources(
